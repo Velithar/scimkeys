@@ -1,0 +1,19 @@
+[Unit]
+Description=Scimitar PRO RGB side-button daemon
+After=systemd-udevd.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/scimkeys
+Restart=always
+RestartSec=2
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+DevicePolicy=closed
+DeviceAllow=/dev/uinput rw
+DeviceAllow=char-hidraw rw
+
+[Install]
+WantedBy=multi-user.target

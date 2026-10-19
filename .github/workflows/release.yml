@@ -1,0 +1,32 @@
+name: release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write
+jobs:
+  deb:
+    runs-on: ubuntu-latest
+    container:
+      image: rust:1-trixie   # build against Debian trixie's glibc
+    steps:
+      - name: Tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends git curl ca-certificates dpkg-dev
+          cargo install cargo-deb --locked
+      - uses: actions/checkout@v4
+      - name: Tag must equal Cargo.toml version
+        run: |
+          v=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
+          [ "v$v" = "${GITHUB_REF_NAME}" ] || { echo "tag ${GITHUB_REF_NAME} != v$v"; exit 1; }
+      - name: Build .deb
+        run: cargo deb --locked
+      - name: Attach to GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl -fsSL https://github.com/cli/cli/releases/download/v2.63.2/gh_2.63.2_linux_amd64.deb -o /tmp/gh.deb
+          apt-get install -y /tmp/gh.deb
+          git config --global --add safe.directory "$PWD"
+          gh release create "${GITHUB_REF_NAME}" target/debian/*.deb --title "${GITHUB_REF_NAME}" --generate-notes
